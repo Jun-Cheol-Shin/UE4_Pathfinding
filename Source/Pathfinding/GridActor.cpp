@@ -2,9 +2,11 @@
 
 
 #include "GridActor.h"
+#include "BaseObstacle.h"
 
 #include "DrawDebugHelpers.h"
 #include "Components/BillboardComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values
 AGridActor::AGridActor()
@@ -56,23 +58,76 @@ FVector2D AGridActor::gridTileNumber()
 	return temp;
 }
 
+bool AGridActor::mySphereTrace(const FVector& Location, const float& size, const ECollisionChannel& type, FHitResult& result)
+{
+	TArray<AActor*> arr;
+	bool retval;
+	retval = UKismetSystemLibrary::SphereTraceSingle(GetWorld(),
+				Location, Location, size,
+				UEngineTypes::ConvertToTraceType(type), 
+				false, arr,
+				EDrawDebugTrace::None, result, true);
+
+	return retval;
+}
+
+
 void AGridActor::DrawTile()
 {
 	FVector2D temp = gridTileNumber();
+
+	FHitResult result;
+	TArray<AActor*> arr;
+	FColor color;
+
+	FVector a, b, TilePosition;
 	
 	for(int i = 0; i <= temp.X; ++i)
 	{
 		for(int j = 0; j <= temp.Y; ++j)
 		{
+			a = RootComponent->GetRightVector() * (i * (TileSize * 2) + TileSize);
+			b = RootComponent->GetForwardVector() * (j * (TileSize * 2) + TileSize);
 
-			FVector a = RootComponent->GetRightVector() * (i * (TileSize * 2) + TileSize);
-			FVector b = RootComponent->GetForwardVector() * (j * (TileSize * 2) + TileSize);
+			TilePosition = gridBottomLeft() + a + b;
+			
+			if(mySphereTrace(TilePosition, TileSize - TileSizeMinus, ECC_GameTraceChannel1, result))
+			{
+				// 큐브와 충돌된다면 빨간색.. 아니면 주황색..
+				if(mySphereTrace(TilePosition, TileSize - TileSizeMinus, ECC_GameTraceChannel2, result))
+				{
+					if(result.GetActor())
+					{
+						ABaseObstacle* obstacle = Cast<ABaseObstacle>(result.GetActor());
+						
+						switch(obstacle->getGroundType())
+						{
+						case GroundTypes::NORMAL:
+							color = FColorList::Cyan;
+							break;
+						case GroundTypes::DIFFICULT:
+							color = FColorList::Yellow;
+							break;
+						case GroundTypes::REALLY_DIFFICULT:
+							color = FColorList::Gold;
+							break;
+						case GroundTypes::IMPOSSIBLE:
+							color = FColorList::Red;
+							break;
+						}
+					}
+				}
+				else
+				{
+					color = FColorList::Wheat;
+				}
 
-			FVector TilePosition = gridBottomLeft() + a + b;
+				DrawDebugSolidPlane(GetWorld(), FPlane(0,0,1,TilePosition.Z),
+					TilePosition, TileSize - TileSizeMinus,
+					color, true, -1.f, 0);
+			}
 
-
-			DrawDebugSolidPlane(GetWorld(), FPlane(0,0,1,TilePosition.Z), TilePosition, TileSize - 5,
-				FColor(0,255,0), true, -1.f, 0);
+	
 		}
 	}
 	

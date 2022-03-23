@@ -29,9 +29,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere)
 		USceneComponent* G_Scene;
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(EditAnywhere)
 		UBillboardComponent* G_Billboard;
 
 	
@@ -41,8 +41,12 @@ public:
 		FColor BottomLeftColor;
 	UPROPERTY(EditAnywhere)
 		float TileSize = 50;
+	UPROPERTY(EditAnywhere)
+		float TileSizeMinus = 5;
 	
 	FVector gridBottomLeft();
 	FVector2D gridTileNumber();
 	void DrawTile();
+
+	bool mySphereTrace(const FVector& Location, const float& size, const ECollisionChannel& type, FHitResult& result);
 };
